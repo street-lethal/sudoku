@@ -1,39 +1,28 @@
 package src
 
 func Search(board *Board) {
-	current := 0
+	tiles := []*Tile{}
+	for _, blankID := range board.BlankIDs {
+		tiles = append(tiles, board.Tiles[blankID])
+	}
 
-	possibleDigitsMap := map[int]*PossibleDigits{}
+	walker := NewWalker(&tiles)
 
-	for current < len(board.BlankIDs) {
-		tile := board.Tiles[board.BlankIDs[current]]
-
-		if possibleDigitsMap[current] == nil {
-			possibleDigitsMap[current] = board.PossibleDigits(tile)
-		} else {
-			// 戻ってきた
-			possibleDigitsMap[current].Remove(tile.Digit)
+	for tile := walker.CurrentTile(); tile != nil; tile = walker.CurrentTile() {
+		if walker.SteppedBack {
+			walker.StoredPossibleDigits().Remove(tile.Digit)
 			tile.Clear()
+		} else {
+			walker.StorePossibleDigits(board.PossibleDigits(tile))
 		}
 
-		for digit := 1; digit <= 9; digit++ {
-			if !(*possibleDigitsMap[current])[digit] {
-				continue
-			}
+		walker.SetOnePossibleDigit()
 
-			tile.Set(digit)
-			break
-		}
-
-		if !tile.IsBlank() {
-			current++
+		if tile.IsBlank() {
+			walker.StepBack()
 			continue
 		}
 
-		possibleDigitsMap[current] = nil
-		current--
-		if current < 0 {
-			return
-		}
+		walker.StepForward()
 	}
 }
